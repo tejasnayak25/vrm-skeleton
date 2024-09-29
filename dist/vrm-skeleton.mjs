@@ -18,11 +18,15 @@ export default class VRMSkeleton {
         this.selectedBone = null;
         this.transform_controls = transform_controls;
         this.transform_state = transform_controls.mode;
-        
-        let humanBones = Object.values(this.vrm.humanoid.humanBones).map(item => item.node);
 
-        humanBones.forEach(vrmbone => {
+        let skeletonHelper = new THREE.SkeletonHelper(vrm.scene);
+
+        skeletonHelper.bones.forEach(vrmbone => {
+            if(vrmbone.name === "Root") return;
+
             let found = includesName(vrmbone.name, ['thumb', 'index', 'toes', 'eye', 'little', 'ring', 'middle']);
+            let shfound = includesName(vrmbone.name, ['hair', 'skirt', 'sleeve']);
+            let bust = includesName(vrmbone.name, ['bust']);
 
             let position = new THREE.Vector3();
             vrmbone.getWorldPosition(position);
@@ -30,7 +34,7 @@ export default class VRMSkeleton {
             let scaleCorrection = new THREE.Vector3(1, 1, 1);
             position.multiply(scaleCorrection);
 
-            let sphere = new THREE.SphereGeometry(found ? 0.005 : 0.015);
+            let sphere = new THREE.SphereGeometry(found || shfound || bust ? 0.005 : 0.015);
             let material = new THREE.MeshBasicMaterial({
                 color: "grey",
                 depthTest: false,
@@ -73,7 +77,7 @@ export default class VRMSkeleton {
                 // Create a cube geometry that spans the distance between the bones
                 let distance = position.distanceTo(childposition);
 
-                let cube = new THREE.CylinderGeometry(0.004, found ? 0.008 : 0.02, distance);
+                let cube = new THREE.CylinderGeometry(0.004, found || shfound || bust ? 0.008 : 0.02, distance);
                 cube.rotateX(Math.PI / 2);
     
                 // Clone the material and adjust the color
@@ -102,7 +106,20 @@ export default class VRMSkeleton {
                 if(interact) {
                     interactionManager.add(childmesh);
 
+                    childmesh.addEventListener("mouseover", () => {
+                        document.body.style.cursor = "pointer";
+                    });
+
+                    childmesh.addEventListener("mouseout", () => {
+                        document.body.style.cursor = "auto";
+                    });
+
                     childmesh.addEventListener("click", () => {
+                        if(shfound || bust) {
+                            transform_controls.mode = "translate";
+                        } else {
+                            transform_controls.mode = "rotate";
+                        }
                         if(this.selectedBone) {
                             this.selectedBone.cubematerial.color.set("grey");
                         }
@@ -111,7 +128,8 @@ export default class VRMSkeleton {
                             cube, cubematerial, childbone
                         }
 
-                        transform_controls.attach(includesName(vrmbone.name, ['skirt', 'hair', 'sleeve']) ? vrmbone : vrm.scene.getObjectByName(`Normalized_${vrmbone.name}`));
+                        let bone = shfound || bust ? vrmbone : vrm.scene.getObjectByName(`Normalized_${vrmbone.name}`);
+                        transform_controls.attach(bone);
                     });
                 }
             });
