@@ -50,11 +50,28 @@ exports.VRMSkeleton = class VRMSkeleton {
             this.holder.add(mesh);
 
             if(vrmbone.children.length === 0) {
+                let distance = 0.5;
+
+                let cube = new THREE.CylinderGeometry(0.004, 0.02, distance);
+                cube.rotateX(Math.PI / 2);
+    
+                // Clone the material and adjust the color
+                let cubematerial = material.clone();
+                cubematerial.color.set("grey");
+    
+                // Create the cube mesh
+                let childmesh = new THREE.Mesh(cube, cubematerial);
+    
+                // Set the position of the cube to the midpoint
+                childmesh.position.copy(vrmbone.position);
+
+                this.holder.add(childmesh);
+
                 this.bones.push({
                     parent: vrmbone,
                     childbone: null,
                     mesh, 
-                    childmesh: null
+                    childmesh: childmesh
                 });
                 return;
             }
